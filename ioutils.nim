@@ -95,8 +95,8 @@ proc addInt*(a, b: int16): int16 =
     :"=a"(`result`)
     :"a"(`a`), "b"(`b`)
   """
-
-proc readPort*(portNumber : uint32 ) : byte  =  
+  
+proc readPort8*(portNumber : uint32 ) : uint8  =  
   asm """
     inb %%dx,%%al;         # 
     outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
@@ -104,13 +104,46 @@ proc readPort*(portNumber : uint32 ) : byte  =
     :"edx"(`portNumber`)
    """ 
 
-proc writePort*(portNumber : uint32, val : byte) =
+proc readPort16*(portNumber : uint32 ) : uint16  =  
+  asm """
+    inb %%dx,%%ax;         # 
+    outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
+    :"=ax"(`result`)
+    :"edx"(`portNumber`)
+   """ 
+
+proc readPort32*(portNumber : uint32 ) : uint32  =  
+  asm """
+    inb %%dx,%%eax;         # 
+    outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
+    :"=eax"(`result`)
+    :"edx"(`portNumber`)
+   """ 
+
+proc writePort*(portNumber : uint32, val : uint8) =
   asm """
      outb %%al,%%dx;
      outb %%al, $0x80  /* noop (slowdown) needed on real hardware */
     : /* nothing is returned */
     :"edx"(`portNumber`), "al"(`val`)
    """
+
+proc writePort*(portNumber : uint32, val : uint16) =
+  asm """
+     outw %%ax,%%dx;
+     outw %%ax, $0x80  /* noop (slowdown) needed on real hardware */
+    : /* nothing is returned */
+    :"edx"(`portNumber`), "ax"(`val`)
+   """
+
+proc writePort*(portNumber : uint32, val : uint32) =
+  asm """
+     outl %%eax,%%dx;
+     outl %%eax, $0x80  /* noop (slowdown) needed on real hardware */
+    : /* nothing is returned */
+    :"edx"(`portNumber`), "eax"(`val`)
+   """
+   
 
 proc disableIRQ*() {.asmNoStackFrame.} =
   asm """

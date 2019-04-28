@@ -20,7 +20,7 @@ task "build", "Builds the operating system.":
   
   echo "Linking..."
   
-  direShell CC, "-T linker.ld -o main.bin -ffreestanding -O2 -nostdlib boot.o nimcache/main.c.o nimcache/stdlib_system.c.o nimcache/ioutils.c.o  nimcache/keyboard.c.o  nimcache/idt.c.o nimcache/gdt.c.o nimcache/convutils.c.o nimcache/debugcon.c.o nimcache/pit.c.o nimcache/circularbuffer.c.o "
+  direShell CC, "-T linker.ld -o main.bin -ffreestanding -O2 -nostdlib boot.o nimcache/main.c.o nimcache/stdlib_system.c.o nimcache/ioutils.c.o  nimcache/keyboard.c.o  nimcache/idt.c.o nimcache/gdt.c.o nimcache/convutils.c.o nimcache/debugcon.c.o nimcache/pit.c.o nimcache/circularbuffer.c.o nimcache/pci.c.o "
   # direShell can not handle multiline strings
   echo "Done."
   

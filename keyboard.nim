@@ -67,9 +67,9 @@ proc initialise*() =
   
 proc ps2mouseIrq*() {.exportc.} =
   # todo: implement
-  writePort(PIC_CTRL_PORT_SLAVE, 0x20) 
+  writePort(PIC_CTRL_PORT_SLAVE, 0x20.uint8) 
   # slavepic end of irq
-  writePort(PIC_CTRL_PORT_MASTER, 0x20) 
+  writePort(PIC_CTRL_PORT_MASTER, 0x20.uint8) 
   # masterpic end of irq
 
 proc keyboardIrq*() {.exportc.}=
@@ -77,7 +77,7 @@ proc keyboardIrq*() {.exportc.}=
   # because its seems not to be supported by i686-gcc. 
   # thus we tailored our own wrapper within boot.s
    
-  let scancode = readPort(KEYBOARD_DATA_PORT).int8
+  let scancode = readPort8(KEYBOARD_DATA_PORT).int8
 
   # needs some rework. handle multikey within the buffer
   if (scancode == LEFT_SHIFT_Pressed or 
@@ -94,7 +94,7 @@ proc keyboardIrq*() {.exportc.}=
       # for now ignore key-release event (highbit set)
       discard 
  
-  writePort(PIC_CTRL_PORT_MASTER, 0x20) # signal master pic: end of irq
+  writePort(PIC_CTRL_PORT_MASTER, 0x20.uint8) # signal master pic: end of irq
  
 proc isKeyPressed*() : bool =
   ## true if new scancode ready to read

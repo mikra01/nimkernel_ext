@@ -12,8 +12,8 @@
 import idt,ioutils,circularbuffer
 
 const
-  CHAN0_COUNTER =0x40.uint8
-  PIT_CMD =0x43.uint8
+  CHAN0_COUNTER =0x40.uint32
+  PIT_CMD =0x43.uint32
 
 var pitReloadVal : int32
 var countVal : int32
@@ -28,7 +28,7 @@ proc pitIrq {.exportc.} =
     countVal= pitReloadVal
     tickBuffer.putVal(pitReloadVal)
   
-  writePort(idt.PIC_CTRL_PORT_MASTER,0x20)
+  writePort(idt.PIC_CTRL_PORT_MASTER,0x20.uint8)
 
 proc initialise*() = 
   tickBuffer.reset()
@@ -37,7 +37,7 @@ proc initialise*() =
   # preset reload value,
   # initialised pic
   var counter : uint16 = ( 0x1234DD.uint32 div 1000).uint16 # 1kHz 
-  writePort(PIT_CMD,0b00110100) # read/load lsb and msb (mode2,binary16)
+  writePort(PIT_CMD,0b00110100.uint8) # read/load lsb and msb (mode2,binary16)
   writePort(CHAN0_COUNTER, (counter mod 256).uint8) # lsb
   writePort(CHAN0_COUNTER, (counter div 256).uint8) # msb
 

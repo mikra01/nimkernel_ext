@@ -16,10 +16,10 @@ const
   Gate32_IRQ = 0x8E.byte
   Gate32_Trap = 0x8F.byte
   Gate32_Task = 0x85.byte
-  PIC_CTRL_PORT_MASTER* = 0x20.uint8
-  PIC_DATA_PORT_MASTER* = 0x21.uint8
-  PIC_CTRL_PORT_SLAVE* = 0xA0.uint8
-  PIC_DATA_PORT_SLAVE* = 0xA1.uint8
+  PIC_CTRL_PORT_MASTER* = 0x20.uint32
+  PIC_DATA_PORT_MASTER* = 0x21.uint32
+  PIC_CTRL_PORT_SLAVE* = 0xA0.uint32
+  PIC_DATA_PORT_SLAVE* = 0xA1.uint32
   IRQBASE_MASTERPIC* = 0x20.uint8
   IRQBASE_SLAVEPIC* = 0x28.uint8
 
@@ -90,8 +90,8 @@ proc initialisePIC*() =
   # intel 8295 init  
   # remap irqs to offset 0x20 and above because the other 
   # vectors (0-0x19) are reserved by intel
-  ioutils.writePort(PIC_CTRL_PORT_MASTER, 0x11)
-  ioutils.writePort(PIC_CTRL_PORT_SLAVE, 0x11)   
+  ioutils.writePort(PIC_CTRL_PORT_MASTER, 0x11.uint8)
+  ioutils.writePort(PIC_CTRL_PORT_SLAVE, 0x11.uint8)   
  
   ioutils.writePort(PIC_DATA_PORT_MASTER, idt.IRQBASE_MASTERPIC) 
   # irq vectors master pic

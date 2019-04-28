@@ -6,6 +6,7 @@ import pit
 import debugcon
 import circularbuffer
 import convutils
+import pci
 
 type
   TMultiboot_header = object
@@ -41,6 +42,9 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
 
   keyboard.initialise()
   pit.initialise()
+  
+  pci.initPCI()
+
   
   ioutils.enableIRQ()
 
