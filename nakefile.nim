@@ -20,11 +20,11 @@ task "build", "Builds the operating system.":
   
   echo "Linking..."
   
-  direShell CC, "-T linker.ld -o main.bin -ffreestanding -O2 -nostdlib boot.o nimcache/main.c.o nimcache/stdlib_system.c.o nimcache/ioutils.c.o  nimcache/keyboard.c.o  nimcache/idt.c.o nimcache/gdt.c.o nimcache/convutils.c.o nimcache/debugcon.c.o nimcache/pit.c.o nimcache/circularbuffer.c.o nimcache/pci.c.o "
+  direShell CC, "-T linker.ld -o main.bin -ffreestanding -O2 -nostdlib boot.o nimcache/main.c.o nimcache/stdlib_system.c.o nimcache/ioutils.c.o  nimcache/keyboard.c.o  nimcache/idt.c.o nimcache/gdt.c.o nimcache/convutils.c.o nimcache/debugcon.c.o nimcache/pit.c.o nimcache/circularbuffer.c.o nimcache/rsdp.c.o nimcache/pci.c.o "
   # direShell can not handle multiline strings
   echo "Done."
   
 task "run", "Runs the operating system using QEMU.":
   if not existsFile("main.bin"): runTask("build")
-  # added: opens the debug-console for monitoring the boot-process
-  direShell "qemu-system-i386 -kernel main.bin -chardev stdio,id=seabios -device isa-debugcon,iobase=0x402,chardev=seabios -m 1G  "
+  # added: opens the debug-console for monitoring the boot-process -nic user,model=virtio-net-pci 
+  direShell "qemu-system-i386 -kernel main.bin -chardev stdio,id=seabios -device isa-debugcon,iobase=0x402,chardev=seabios -machine type=pc-q35-2.8 -nic user,model=virtio-net-pci -device intel-iommu "

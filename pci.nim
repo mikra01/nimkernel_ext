@@ -6,21 +6,20 @@
 #
 # further information : wiki.osdev.org/PCI
 # irqs: https://people.freebsd.org/~jhb/papers/bsdcan/2007/article/node4.html#SECTION00041000000000000000
-#
-# memory layout( source https://wiki.qemu.org/Documentation/Platforms/PC )
-# 0x00000 .. 0xA0000      DOS Memory Area       RAM
-# 0xA0000 .. 0xC0000      Video Memory          Device Memory
-# 0xC0000 .. 0xE0000      ISA Extension ROM     ROM
-# 0xE0000 .. 0xF0000      BIOS Extension ROM    ROM
-# 0xF0000 .. 0x100000     BIOS Area             ROM
 
 import ioutils,debugcon
 
-const FUNCTION_NUM_PORT = 0x0CF8.uint16
-const PCI_PORT_BASE = 0xC000.uint16
-
-template PCIConf2Addr(dev : uint16, register : uint8) : uint16 =
-  PCI_PORT_BASE or (register shl 8) or register
+const 
+  FUNCTION_NUM_PORT_8 = 0x0CF8.uint16
+  FORWARDING_REG_8 = 0x0CFA.uint16
+  # regs for config_mode2
+  PCI_PORT_BASE = 0xC000.uint16
+  
+type
+  PORTWIDTH = enum pw_8bit,pw_16bit,pw_32bit
+  
+template getPCIConf2Addr(device : uint16, register : uint8) : uint16 =
+  PCI_PORT_BASE.uint16 or (device.uint16 shl 8) or register.uint16
  
 
 const 
@@ -136,17 +135,72 @@ type
     # end of base sys peripheral
     # all other following class/subclass codes are not covered
   
+proc readPCIMode2(bus : uint8, device: uint8, function: uint8, register : uint8 , portwidth : PORTWIDTH ) : int32 =
+    ## reads the bus at the specified busnum,device function and register with the desired portwidth. 
+    ## the obtained value is returned
+    # enable bus access 
+    FUNCTION_NUM_PORT_8.writePort( ((function shl 1) or 0xF0).uint8)
+    # set function number
+    FORWARDING_REG_8.writePort(bus.uint8)         
+    # select bus
     
-proc initPCI*() = 
-  let configOk : uint8 = readPort8(FUNCTION_NUM_PORT) and 0b11110000.uint8
+    # read value
+    case portwidth
+    of PORTWIDTH.pw_8bit:
+      result = readPort8(getPCIConf2Addr(device,register)).int32
+    of PORTWIDTH.pw_16bit:
+      result = readPort16(getPCIConf2Addr(device,register)).int32
+    of PORTWIDTH.pw_32bit:
+      result = readPort32(getPCIConf2Addr(device,register)).int32
+
+    # FUNCTION_NUM_PORT_8.writePort(0x0.uint8)
+    # disable access
+
+proc writePCIMode2(bus:uint8, device:uint8,function:uint8,register:uint8,portwidth:PORTWIDTH, val:uint32) =
+    ## writes the pci bus in mode2    
+    # enable bus access 
+    FUNCTION_NUM_PORT_8.writePort((function shl 1) or 0xF0.uint8)
+    # set function number
+    FORWARDING_REG_8.writePort(bus)         
+    # select bus
+
+    # write value
+    case portwidth
+    of PORTWIDTH.pw_8bit:
+      writePort(getPCIConf2Addr(device,register),val.uint8)
+    of PORTWIDTH.pw_16bit:
+      writePort(getPCIConf2Addr(device,register),val.uint16)
+    of PORTWIDTH.pw_32bit:
+      writePort(getPCIConf2Addr(device,register),val.uint32)
+
+    FUNCTION_NUM_PORT_8.writePort(0x0.uint8)
+    # disable access
+
+
+proc scanDeviceAndVendorByPort*()  =
+  ## scans the pci bus for device_id and vendor_id and outputs
+  ## the values to the debug_console
+  ## we dont scan bridge devices
+   
+  var vendorid : uint16 
+  var deviceid: uint16
   
-  if configOk.int > 0:
-    # already configured we can access the ports at PCI_PORT_BASE
-    discard
-  else:
-    # needs config
-    discard
+  for busnum in 0.uint8 .. 254:
+    for devicenum in 0.uint8 .. 30:
+      for funcnum in 0.uint8 .. 6:
+        
+        vendorid = readPCIMode2(busnum,devicenum,funcnum,STD_VendorID_16,PORTWIDTH.pw_16bit).uint16
+        deviceid = readPCIMode2(busnum,devicenum,funcnum,STD_DeviceID_16,PORTWIDTH.pw_16bit).uint16
+        
+        if (vendorid == 0xFFFF or deviceid == 0xFFFF):
+          continue
+        else:
+          debugOut(vendorid)
+          debugOut(deviceid)
   
+  debugOut("pci device scan finished",24)
+  outNextLine
+
 
 proc checkBAR() =
   discard  
@@ -164,7 +218,3 @@ proc probeDevice( bus : uint16, device : uint8) =
   discard
 
 
-proc checkAll*() =
-  for bus in countup(0,255):
-    for device in countup(0,31):
-      probeDevice(PCI_PORT_BASE + bus.uint8,device.uint8)

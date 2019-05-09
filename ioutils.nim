@@ -106,7 +106,7 @@ proc readPort8*(portNumber : uint32 ) : uint8  =
 
 proc readPort16*(portNumber : uint32 ) : uint16  =  
   asm """
-    inb %%dx,%%ax;         # 
+    inw %%dx,%%ax;         # 
     outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
     :"=ax"(`result`)
     :"edx"(`portNumber`)
@@ -114,7 +114,7 @@ proc readPort16*(portNumber : uint32 ) : uint16  =
 
 proc readPort32*(portNumber : uint32 ) : uint32  =  
   asm """
-    inb %%dx,%%eax;         # 
+    inl  %%dx,%%eax;         # 
     outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
     :"=eax"(`result`)
     :"edx"(`portNumber`)
@@ -138,7 +138,7 @@ proc writePort*(portNumber : uint32, val : uint16) =
 
 proc writePort*(portNumber : uint32, val : uint32) =
   asm """
-     outl %%eax,%%dx;
+     outl %%eax,%%edx;
      outl %%eax, $0x80  /* noop (slowdown) needed on real hardware */
     : /* nothing is returned */
     :"edx"(`portNumber`), "eax"(`val`)

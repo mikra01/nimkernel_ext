@@ -7,6 +7,7 @@ import debugcon
 import circularbuffer
 import convutils
 import pci
+import rsdp
 
 type
   TMultiboot_header = object
@@ -20,6 +21,7 @@ var charbuffer : array[6,char]
 proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   # multiboot supports only 0x86 arch
   # we are running in protected-mode (32bit), Ring0, seaBios loaded and interrupts disabled
+  # TODO: obtain GRUB memory_map
   if magic != 0x2BADB002:
     discard # Something went wrong?
 
@@ -42,15 +44,22 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
 
   keyboard.initialise()
   pit.initialise()
-  
-  pci.initPCI()
-
-  
+ 
   ioutils.enableIRQ()
-
+ 
+  pci.scanDeviceAndVendorByPort()
+ 
   var tstval : int16 = -10
   pit.setTicktime(1000)
-  
+ 
+  if rsdp.searchRSDPToken():
+    debugOut("RSD PTR found at: ",18)
+    debugOut(rsdp.rsdpBaseAddr)
+    outNextLine
+    rsdp.acpiTablesLookup()
+  else:
+    debugOut("RSD PTR  not found! ",20)
+
   while true:
     if pit.hasTickEvent():
       inc tstval
@@ -64,7 +73,7 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
       writeChar(vram,makeEntry(ascii,attr),(12,12)) # char to screen
       stringbuffer[0] = ascii
       stringbuffer[1] = ' '
-      debugcon.debugOut(scancode)       # debug out scancode
+      debugcon.debugOut(scancode.uint8)       # debug out scancode
       debugcon.debugOut(stringbuffer,2) # debug out asciicode
     
     asm """

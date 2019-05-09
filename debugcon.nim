@@ -11,22 +11,39 @@ import convutils,ioutils
 const
   DEBUGCON_DATAPORT = 0x402.uint16
 
-var cbuf : array[2,char]
   
-proc debugOut*(val : int8) =
+var cbufL : array[8,byte]  
+var cbufW : array[4,byte]
+var cbufB: array[2,byte]
+## no stdlib present so buffer is defined globally (not threadsafe)
+  
+template outNextLine* =
+  debugOut("\n",1);  
+  
+    
+proc debugOut*(val : uint8) =
   ## outputs a value to the console. a hex2Char 
   ## conversion is performed
-  ## dangerzone: this proc is not reentrant at the moment!
-  ##
-  ## issue: if a local variable (char) the compiler complains
-  ## about string.h missing
-  hex2Char(val,cbuf)
-  ioutils.writePort(DEBUGCON_DATAPORT,cbuf[0].byte)
-  ioutils.writePort(DEBUGCON_DATAPORT,cbuf[1].byte)
-  ioutils.writePort(DEBUGCON_DATAPORT,' '.byte)
+  hex2CharB(val,cbufB)
+  ioutils.writePort(DEBUGCON_DATAPORT,cbufB[0].uint8)
+  ioutils.writePort(DEBUGCON_DATAPORT,cbufB[1].uint8)
 
+proc debugOut*(val : uint16) =
+  hex2CharW(val,cbufW)
+  for i in 0..3:
+    ioutils.writePort(DEBUGCON_DATAPORT,cbufW[i].uint8)
+    
+proc debugOut*(val : uint32) =
+  hex2CharL(val,cbufL)
+  for i in 0 .. 7 :
+    ioutils.writePort(DEBUGCON_DATAPORT,cbufL[i].uint8)  
+    
 template debugOut*(val : char) =
   ioutils.writePort(DEBUGCON_DATAPORT,val.byte)
+
+template debugOut*(arrptr : ptr , len : int) =
+  for i in 0 .. len-1 :
+    ioutils.writePort(DEBUGCON_DATAPORT,arrptr[i].uint8)  
   
 proc debugOut*(val : string, len : int) =
   ## simple debugconsole out. we do not need to utilize a timer
@@ -35,3 +52,23 @@ proc debugOut*(val : string, len : int) =
   ## something seems to be optimized
   for i in 0 .. len-1:
     ioutils.writePort(DEBUGCON_DATAPORT,val[i].byte)
+  
+#proc dumpMemAsc*( start : ptr , len : int ) =
+# ## ascii memory dump 
+# var sb = cast[binDmpBuffer](start)
+# for i in countup(0,len-1):
+#   debugOut(sb[i].char)
+
+proc dumpMemBin*( start : ptr , len : int ) =
+  ## bin memory dump toconsole  
+  var p : int = cast[int](start)
+  for i in countup(0,len-1):
+    debugOut( (cast[ptr uint8](p))[] )
+    inc p
+
+proc dumpMemAsc*( start : ptr , len : int ) =
+  ## bin memory dump toconsole  
+  var p : int = cast[int](start)
+  for i in countup(0,len-1):
+    debugOut( (cast[ptr char](p))[] )
+    inc p
