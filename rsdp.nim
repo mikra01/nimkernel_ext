@@ -27,8 +27,6 @@ type
     revision : uint8
     rsdtAddr : uint32
    
-  # RSDP_ChecksummedFields = array[sizeof(RSDP_Descriptor),uint8]
-  # sizeof seems not to give proper results
   RSDP_ChecksummedFields = ptr array[19,uint8]
   ACPI_ChecksummedFields = ptr array[36,uint8]
   
@@ -50,6 +48,7 @@ type
     oemRevision : uint32
     creatorId : uint32
     creatorRevision : uint32
+    nextPtr : array[4,uint32] # quirky
     # after that n entries of 32bit ptr following (according to the length field)
 
   MCFG_Config_Hdr {.packed.} = ptr object
@@ -66,9 +65,6 @@ type
 
 template numACPIEntries(hdr : ACPI_SDT_Header ) : uint32 =
   ( hdr.length - 36 ) shr 2
-
-proc calcACPIPtr(hdr : ACPI_SDT_Header, idx : int) : ACPI_SDT_Header =
-  result = cast[ACPI_SDT_Header](cast[int](hdr.unsafeAddr) + 36 + (idx * 4))
      
 var rsdpBaseAddr* : uint32  
 var rsdtBaseAddr* : ACPI_SDT_Header
@@ -123,7 +119,7 @@ proc isMCFGHeader( acpiHeader : var ACPI_SDT_Header) : bool =
   ctr == 4
   
 proc searchRSDPToken*() : bool =
-  ## searches the memregion 0xE0000 to 0xFFFFF for the token 
+  ## searches the memregion 0xE0000 to 0xFFFFF for the base rsd-token 
   ## additional ebdabase search not performed
   result = false;
   var edbaBaseVal : uint32 = ((cast[EdbaBasePtr](EBDA_BASE))[0]) shl 4
@@ -183,12 +179,15 @@ proc acpiTablesLookup*() =
         outNextLine
 
         var mcfg_idx : int = -1
+        var nextHdr : ACPI_SDT_Header
 
         for x in countup(0,(numACPIEntries(rsdt_hdr)-1).int):
-          var hdrptr = calcACPIPtr(rsdt_hdr,x)
-          if isMCFGHeader(hdrptr):            
+          nextHdr = cast[ACPI_SDT_Header](rsdt_hdr.nextPtr[x])
+          debugOut(nextHdr.signature.addr,4)
+          outNextLine
+          if isMCFGHeader( nextHdr ):            
             mcfg_idx = x
-            mcfgCfgHdrPtr = cast[MCFG_Config_Hdr](hdrptr)
+            mcfgCfgHdrPtr = cast[MCFG_Config_Hdr](nextHdr)
             break
 
         if mcfg_idx > -1:
@@ -199,7 +198,7 @@ proc acpiTablesLookup*() =
 
         outNextLine
     else:
-      debugOut("no RSDT found! please check hw",30)
+      debugOut("no RSDT found! please check your hw",30)
 
   else:
     debugOut("rsdpchecksum invalid!",21);

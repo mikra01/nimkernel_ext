@@ -19,7 +19,7 @@ type
   PORTWIDTH = enum pw_8bit,pw_16bit,pw_32bit
   
 template getPCIConf2Addr(device : uint16, register : uint8) : uint16 =
-  PCI_PORT_BASE.uint16 or (device.uint16 shl 8) or register.uint16
+  PCI_PORT_BASE.uint16 or (device.uint16 shl 8) or ( register.uint16 ) 
  
 
 const 
@@ -28,8 +28,8 @@ const
   CardbusHdrLen : uint8 = 72
   
   # std header offsets. the size in bits is postfixed
-  STD_DeviceID_16 : uint8 = 00
-  STD_VendorID_16 : uint8 = 02
+  STD_DeviceID_16 : uint8 = 02
+  STD_VendorID_16 : uint8 = 00
   STD_STATUS_16 : uint8 = 04
   STD_CMD_16 : uint8 = 06
   STD_ClassCode_8 : uint8 = 8
@@ -139,9 +139,9 @@ proc readPCIMode2(bus : uint8, device: uint8, function: uint8, register : uint8 
     ## reads the bus at the specified busnum,device function and register with the desired portwidth. 
     ## the obtained value is returned
     # enable bus access 
-    FUNCTION_NUM_PORT_8.writePort( ((function shl 1) or 0xF0).uint8)
+    writePort(0xcf8.uint16,((function shl 1) or 0xF0).uint8 )
     # set function number
-    FORWARDING_REG_8.writePort(bus.uint8)         
+    writePort(0xcfa.uint16,bus.uint8)         
     # select bus
     
     # read value
@@ -153,13 +153,13 @@ proc readPCIMode2(bus : uint8, device: uint8, function: uint8, register : uint8 
     of PORTWIDTH.pw_32bit:
       result = readPort32(getPCIConf2Addr(device,register)).int32
 
-    # FUNCTION_NUM_PORT_8.writePort(0x0.uint8)
+    writePort(0xcfa.uint16,0x0.uint8)
     # disable access
 
 proc writePCIMode2(bus:uint8, device:uint8,function:uint8,register:uint8,portwidth:PORTWIDTH, val:uint32) =
     ## writes the pci bus in mode2    
     # enable bus access 
-    FUNCTION_NUM_PORT_8.writePort((function shl 1) or 0xF0.uint8)
+    FUNCTION_NUM_PORT_8.writePort( ((function shl 1) or 0xF0.uint8)   )
     # set function number
     FORWARDING_REG_8.writePort(bus)         
     # select bus
@@ -181,18 +181,18 @@ proc scanDeviceAndVendorByPort*()  =
   ## scans the pci bus for device_id and vendor_id and outputs
   ## the values to the debug_console
   ## we dont scan bridge devices
-   
-  var vendorid : uint16 
+  ## TODO: does not work like intended - evaluate  
+  var vendorid : uint16
   var deviceid: uint16
   
   for busnum in 0.uint8 .. 254:
     for devicenum in 0.uint8 .. 30:
       for funcnum in 0.uint8 .. 6:
         
-        vendorid = readPCIMode2(busnum,devicenum,funcnum,STD_VendorID_16,PORTWIDTH.pw_16bit).uint16
-        deviceid = readPCIMode2(busnum,devicenum,funcnum,STD_DeviceID_16,PORTWIDTH.pw_16bit).uint16
-        
-        if (vendorid == 0xFFFF or deviceid == 0xFFFF):
+        vendorid = readPCIMode2(busnum,devicenum,funcnum,0.uint8,PORTWIDTH.pw_16bit).uint16
+        deviceid = readPCIMode2(busnum,devicenum,funcnum,2.uint8,PORTWIDTH.pw_16bit).uint16
+        # todo: evaluate - doesn't work
+        if (vendorid == 0xFFFF.uint16 or deviceid == 0xFFFF.uint16) or (vendorid == 0.uint16 and deviceid == 0.uint16):
           continue
         else:
           debugOut(vendorid)

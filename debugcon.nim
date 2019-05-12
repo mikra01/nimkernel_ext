@@ -53,22 +53,16 @@ proc debugOut*(val : string, len : int) =
   for i in 0 .. len-1:
     ioutils.writePort(DEBUGCON_DATAPORT,val[i].byte)
   
-#proc dumpMemAsc*( start : ptr , len : int ) =
-# ## ascii memory dump 
-# var sb = cast[binDmpBuffer](start)
-# for i in countup(0,len-1):
-#   debugOut(sb[i].char)
-
-proc dumpMemBin*( start : ptr , len : int ) =
+proc dumpMemBin*( start : int , len : int ) =
   ## bin memory dump toconsole  
-  var p : int = cast[int](start)
+  var p : int = start
   for i in countup(0,len-1):
     debugOut( (cast[ptr uint8](p))[] )
     inc p
 
-proc dumpMemAsc*( start : ptr , len : int ) =
+proc dumpMemAsc*( start : int , len : int ) =
   ## bin memory dump toconsole  
-  var p : int = cast[int](start)
+  var p : int = start
   for i in countup(0,len-1):
     debugOut( (cast[ptr char](p))[] )
     inc p

@@ -11,7 +11,7 @@ mk: I added some additional stuff:
 Remark: to get it compiled with 0.19.4/0.19.9, you need to patch indexerrors.nim as described here:
 https://github.com/nim-lang/Nim/issues/10978
 
-TODO: PCI hw detection, tasking and usermode (ring3)
+TODO: PCI hw detection(ACPI_Table, PCI/e lookup done) , tasking and usermode (ring3)
 I used the gnu cross toolchain i686-elf for compilation on windows.
 
 Limitations: if you like string support you need to go further and setup your own

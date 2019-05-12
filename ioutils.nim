@@ -99,23 +99,29 @@ proc addInt*(a, b: int16): int16 =
 proc readPort8*(portNumber : uint32 ) : uint8  =  
   asm """
     inb %%dx,%%al;         # 
-    outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
+   # outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
     :"=al"(`result`)
     :"edx"(`portNumber`)
    """ 
 
 proc readPort16*(portNumber : uint32 ) : uint16  =  
   asm """
-    inw %%dx,%%ax;         # 
-    outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
-    :"=ax"(`result`)
-    :"edx"(`portNumber`)
+    inw %w1,%0;         # 
+    :"=a"(`result`)
+    :"d"(`portNumber`)
    """ 
+  # asm """
+  #   inw %%dx,%%ax;         # 
+  #  # outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
+  #   :"=ax"(`result`)
+  #   :"edx"(`portNumber`)
+  #  """ 
+
 
 proc readPort32*(portNumber : uint32 ) : uint32  =  
   asm """
-    inl  %%dx,%%eax;         # 
-    outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
+    in  %%dx,%%eax;         # 
+   # outb %%al, $0x80       /* noop (slowdown) needed on real hardware */
     :"=eax"(`result`)
     :"edx"(`portNumber`)
    """ 
@@ -124,10 +130,10 @@ proc writePort*(portNumber : uint32, val : uint8) =
   asm """
      outb %%al,%%dx;
      outb %%al, $0x80  /* noop (slowdown) needed on real hardware */
-    : /* nothing is returned */
+   : /* nothing is returned */
     :"edx"(`portNumber`), "al"(`val`)
    """
-
+ 
 proc writePort*(portNumber : uint32, val : uint16) =
   asm """
      outw %%ax,%%dx;
@@ -144,7 +150,6 @@ proc writePort*(portNumber : uint32, val : uint32) =
     :"edx"(`portNumber`), "eax"(`val`)
    """
    
-
 proc disableIRQ*() {.asmNoStackFrame.} =
   asm """
     cli;
