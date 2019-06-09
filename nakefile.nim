@@ -14,7 +14,7 @@ task "clean", "Removes build files.":
 task "build", "Builds the operating system.":
   echo "Compiling..."
   # if --d:release not present we get the error: system module needs: addInt
-  direShell "nim c --d:release --verbosity:3 --nimcache:nimcache --os:standalone --gc:stack --gcc.exe:$1 main.nim" % CC
+  direShell "nim c --d:release --verbosity:3 --nimcache:nimcache --os:standalone --gcc.exe:$1 main.nim" % CC
   
   direShell asmC, "boot.s -o boot.o"
   
@@ -27,4 +27,4 @@ task "build", "Builds the operating system.":
 task "run", "Runs the operating system using QEMU.":
   if not existsFile("main.bin"): runTask("build")
   # added: opens the debug-console for monitoring the boot-process -nic user,model=virtio-net-pci 
-  direShell "qemu-system-i386 -kernel main.bin -chardev stdio,id=seabios -device isa-debugcon,iobase=0x402,chardev=seabios -machine type=pc-q35-2.8 -nic user,model=virtio-net-pci -device intel-iommu "
+  direShell "qemu-system-i386 -kernel main.bin -chardev stdio,id=seabios -device isa-debugcon,iobase=0x402,chardev=seabios -machine type=pc-q35-2.8 " #-nic user,model=virtio-net-pci -device intel-iommu "

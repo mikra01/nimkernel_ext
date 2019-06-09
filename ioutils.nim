@@ -28,7 +28,7 @@ type
 const
   VGAWidth* = 80
   VGAHeight* = 25
-
+  
 proc makeColor*(bg: TVGAColor, fg: TVGAColor): TAttribute =
   ## Combines a foreground and background color into a ``TAttribute``.
   return (ord(fg).uint8 or (ord(bg).uint8 shl 4)).TAttribute
@@ -42,7 +42,7 @@ proc makeEntry*(c: char, color: TAttribute): TEntry =
 
 proc writeChar*(vram: PVidMem, entry: TEntry, pos: TPos) =
   ## Writes a character at the specified ``pos``.
-  let index = (80 * pos.y) + pos.x
+  let index : int = (80 * pos.y) + pos.x 
   vram[index] = entry
 
 proc rainbow*(vram: PVidMem, text: string, pos: TPos) =

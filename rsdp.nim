@@ -12,7 +12,11 @@ const
   MEM_BASE : uint32 = 0xE0000
   
   RSDT_TOKEN_DEF : array[0..3,char] = ['R','S','D','T']
-  MCFG_TOKEN_DEF : array[0..3,char] = ['M','C','F','G']
+  MCFG_TOKEN_DEF : array[0..3,char] = ['M','C','F','G'] # PCI e
+  FACP_TOKEN_DEF : array[0..3,char] = ['F','A','C','P']
+  APIC_TOKEN_DEF : array[0..3,char] = ['A','P','I','C']
+  HPET_TOKEN_DEF : array[0..3,char] = ['H','P','E','T'] # Timer
+
   
 type
   RSDPTokenType = array[0..15,char]
@@ -38,7 +42,7 @@ type
     extChecksum : uint8
     reserved : array[3,uint8]
   
-  ACPI_SDT_Header*  {.packed.} = ptr object
+  ACPI_SDT_hdr*  {.packed.} = object
     signature : array[4,char]
     length : uint32       # checksum depends on the length field
     revision : uint8
@@ -48,10 +52,12 @@ type
     oemRevision : uint32
     creatorId : uint32
     creatorRevision : uint32
-    nextPtr : array[4,uint32] # quirky
+    nextPtr : array[2,uint32] # quirky
     # after that n entries of 32bit ptr following (according to the length field)
 
-  MCFG_Config_Hdr {.packed.} = ptr object
+  ACPI_SDT_Header*  {.packed.} = ptr ACPI_SDT_hdr
+
+  MCFG_Config_Hdr {.packed.} = object
     baseAddr: uint64
     pciSegmGroupNum : uint16
     startPCINum : uint8
@@ -59,16 +65,20 @@ type
     reserved : uint32 
 
   ACPI_MCFG_Header  {.packed.} = ptr object
-    stdHeader : ACPI_SDT_Header
+    stdHeader : ACPI_SDT_hdr
     reserved : uint64
     confighdr : array[0..15,MCFG_Config_Hdr]
 
 template numACPIEntries(hdr : ACPI_SDT_Header ) : uint32 =
   ( hdr.length - 36 ) shr 2
+ 
+template numMCFGEntries(hdr : ACPI_SDT_Header ) : uint32 =
+   ( hdr.length - 36 ) shr 4
      
 var rsdpBaseAddr* : uint32  
 var rsdtBaseAddr* : ACPI_SDT_Header
-var mcfgCfgHdrPtr* : MCFG_Config_Hdr
+var mcfgCfgHdrPtr* : ACPI_MCFG_Header
+# FIXME: rename with Ptr postfix
 
 proc validateRsdpChecksum( rsdpBase : var RSDP_ChecksummedFields ) : bool = 
   result = false
@@ -80,10 +90,20 @@ proc validateRsdpChecksum( rsdpBase : var RSDP_ChecksummedFields ) : bool =
 proc validateAcpiChecksum( acpiBase : var  ACPI_ChecksummedFields , length : int ) : bool =
   result = false
   var checksum : uint8 = 0
-  for i in countup(0,length):
+  for i in countup(0,length-1):
     checksum = checksum + acpiBase[i]
   result = checksum == 0.uint8
  
+proc validateMCFGChecksum( acpiBase :  ACPI_ChecksummedFields , length : int ) : bool =
+  result = false
+  var checksum : uint8 = 0
+  for i in countup(0,length-1):
+    debugOut(acpiBase[i])
+    checksum = checksum + acpiBase[i]
+  debugOut("mcfg_csum ",10)
+  debugOut(checksum)
+  outNextLine
+  result = checksum  == 0.uint8 
  
 proc strComp[T,L]( srcptr : ptr array[T,L] , dstptr : ptr array[T,L] , len : int) : bool =
   ## simple check for equality (unused)
@@ -111,7 +131,7 @@ proc isRSDTHeader( acpiHeader : var ACPI_SDT_Header ) : bool =
       inc ctr    
   ctr == 4
   
-proc isMCFGHeader( acpiHeader : var ACPI_SDT_Header) : bool =
+proc isMCFGHeader( acpiHeader :  ACPI_SDT_Header) : bool =
   var ctr : int = 0
   for x in countup(0,3):
     if acpiHeader.signature[x] == MCFG_TOKEN_DEF[ctr]:
@@ -180,18 +200,51 @@ proc acpiTablesLookup*() =
 
         var mcfg_idx : int = -1
         var nextHdr : ACPI_SDT_Header
-
+        var numMCFG : uint32 = 0
+ 
         for x in countup(0,(numACPIEntries(rsdt_hdr)-1).int):
           nextHdr = cast[ACPI_SDT_Header](rsdt_hdr.nextPtr[x])
-          debugOut(nextHdr.signature.addr,4)
-          outNextLine
-          if isMCFGHeader( nextHdr ):            
+          if isMCFGHeader( nextHdr ):
+            var mcfg_checksum = cast[ACPI_ChecksummedFields](nextHdr)
+            if validateMCFGChecksum(mcfg_checksum,nextHdr.length.int): 
+              debugOut("mcfg_checksum ok ",17)
+            numMCFG = numMCFGEntries(nextHdr)  
             mcfg_idx = x
-            mcfgCfgHdrPtr = cast[MCFG_Config_Hdr](nextHdr)
+            mcfgCfgHdrPtr = cast[ACPI_MCFG_Header](nextHdr)
             break
+            # only search for mcfg_hdr
 
         if mcfg_idx > -1:
           debugOut("mcfg_table found",16)
+          # check checksum and get the number of entries 
+          var mcfg_checksum = cast[ACPI_ChecksummedFields](mcfgCfgHdrPtr)
+          if validateMCFGChecksum(mcfg_checksum,mcfgCfgHdrPtr.stdHeader.length.int): 
+            debugOut("mcfg_table checksum valid",25)
+            debugOut("entry_count: ",13)
+            debugOut(numMCFG.uint16)
+            outNextLine
+            var baddr = cast[uint32](mcfgCfgHdrPtr.confighdr[0].baseAddr.uint64)
+            var pciSegm = mcfgCfgHdrPtr.confighdr[0].pciSegmGroupNum
+            var startPciNum = mcfgCfgHdrPtr.confighdr[0].startPCINum # start bus number
+            var endPciNum = mcfgCfgHdrPtr.confighdr[0].endPciNum  # end bus number
+            debugOut(baddr)
+            outNextLine
+            debugOut(pciSegm)
+            outNextLine
+            debugOut(startPciNum)
+            outNextLine
+            debugOut(endPciNum)
+            outNextLine
+
+# Memory Address =
+# PCI Express* Configuration Space Base Address +
+# (Bus Number x 100000h) +
+# (Device Number x 8000h) +
+# (Function Number x 1000h) +
+# (Register Offset) 
+
+           else: 
+            debugOut("mcfg_checksum invalid ",22)
         else:
           debugOut("mcfg_table not found! ",21) 
           # table required for MMIO

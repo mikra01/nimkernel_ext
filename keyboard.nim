@@ -21,19 +21,19 @@ import idt,ioutils,circularbuffer
 const 
   KEYBOARD_DATA_PORT  = 0x60.byte
 
-  ESC_KEY_Pressed = 0x01.int8
-  LEFT_SHIFT_Pressed = 0x2A.int8
-  RIGHT_SHIFT_Pressed = 0x36.int8
-  LEFT_SHIFT_Released = 0xAA.int8
-  RIGHT_SHIFT_Released = 0xB6.int8
-  LEFT_CTRL_Pressed = 0x1D.int8
-  RIGHT_CTRL_Pressed = 0x1D.int8
+  ESC_KEY_Pressed = 0x01.uint8
+  LEFT_SHIFT_Pressed = 0x2A.uint8
+  RIGHT_SHIFT_Pressed = 0x36.uint8
+  LEFT_SHIFT_Released = 0xAA.uint8
+  RIGHT_SHIFT_Released = 0xB6.uint8
+  LEFT_CTRL_Pressed = 0x1D.uint8
+  RIGHT_CTRL_Pressed = 0x1D.uint8
   # scancodes for special keys
   # 1d u. 38 right alt (multicode)
   # 
   
-var cBuff : CBuffer[4,int8]
-var scancodeMultikey : int8  
+var cBuff : CBuffer[4,uint8]
+var scancodeMultikey : uint8  
   
 const keybmap_lc : array[128,char] = [
   # lowercase keyboard-mapping us-ascii 
@@ -77,7 +77,7 @@ proc keyboardIrq*() {.exportc.}=
   # because its seems not to be supported by i686-gcc. 
   # thus we tailored our own wrapper within boot.s
    
-  let scancode = readPort8(KEYBOARD_DATA_PORT).int8
+  let scancode = readPort8(KEYBOARD_DATA_PORT).uint8
 
   # needs some rework. handle multikey within the buffer
   if (scancode == LEFT_SHIFT_Pressed or 
@@ -87,10 +87,10 @@ proc keyboardIrq*() {.exportc.}=
          scancode == RIGHT_SHIFT_Released ):
         scancodeMultikey = 0
   else:    
-    if scancode > 0 and scancode < 128:
+    if scancode > 0.uint8 and scancode < 128.uint8:
       # key pressed 
       cBuff.putVal(scancode)
-    elif scancode < 0:
+    elif scancode < 0.uint8:
       # for now ignore key-release event (highbit set)
       discard 
  
@@ -116,12 +116,12 @@ proc withLeftALt*() : bool =
 proc withRightAlt*() : bool =
   discard
 
-proc readScancode*() : int8 =
+proc readScancode*() : uint8 =
   cBuff.fetchVal()
   
-proc scancode2Keycode*(scancode : int8) : char =  
+proc scancode2Keycode*(scancode : uint8) : char =  
   ## scancode to ascii-code conversion
-  if scancode >= 0 and scancode <= 128:
+  if scancode >= 0.uint8 and scancode <= 128.uint8:
     if withShift():
       result = keybmap_uc[scancode]    
     else:
