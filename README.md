@@ -17,4 +17,4 @@ TODO: PCI hw detection(ACPI_Table, PCI/e lookup almost done), nic driver (e1000)
 Limitations: if you like string support you need to go further and setup your own
 Standard C Library; for instance https://wiki.osdev.org/Porting_Newlib 
 
-Dependencies: just nim 0.19.06 and qemu required. I used the gnu cross toolchain i686-elf for compilation on windows.
+Dependencies: just nim 0.19.06, nake and qemu required. I used the gnu cross toolchain i686-elf for compilation on windows.
