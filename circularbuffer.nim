@@ -2,9 +2,9 @@
 # MIT license
 #
 # simple fixed size circular buffer
-# unfetched values are simply overwritten
+# unfetched values are overwritten
 # if more values are inserted than the size of buffer
-# a wraparound happens
+# a wraparound will occur
 #
 
 type

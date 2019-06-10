@@ -14,7 +14,7 @@ task "clean", "Removes build files.":
 task "build", "Builds the operating system.":
   echo "Compiling..."
   # if --d:release not present we get the error: system module needs: addInt
-  direShell "nim c --d:release --verbosity:3 --nimcache:nimcache --os:standalone --gcc.exe:$1 main.nim" % CC
+  direShell "nim c --d:release --verbosity:3 --nimcache:nimcache --os:standalone --gc:none --gcc.exe:$1 main.nim" % CC
   
   direShell asmC, "boot.s -o boot.o"
   

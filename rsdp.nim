@@ -98,7 +98,7 @@ proc validateMCFGChecksum( acpiBase :  ACPI_ChecksummedFields , length : int ) :
   result = false
   var checksum : uint8 = 0
   for i in countup(0,length-1):
-    debugOut(acpiBase[i])
+    # debugOut(acpiBase[i])
     checksum = checksum + acpiBase[i]
   debugOut("mcfg_csum ",10)
   debugOut(checksum)
@@ -235,15 +235,13 @@ proc acpiTablesLookup*() =
             outNextLine
             debugOut(endPciNum)
             outNextLine
-
-# Memory Address =
-# PCI Express* Configuration Space Base Address +
-# (Bus Number x 100000h) +
-# (Device Number x 8000h) +
-# (Function Number x 1000h) +
-# (Register Offset) 
-
-           else: 
+            # Memory Address =
+            # PCI Express* Configuration Space Base Address +
+            # (Bus Number x 100000h) +
+            # (Device Number x 8000h) +
+            # (Function Number x 1000h) +
+            # (Register Offset) 
+          else: 
             debugOut("mcfg_checksum invalid ",22)
         else:
           debugOut("mcfg_table not found! ",21) 

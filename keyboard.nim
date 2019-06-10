@@ -102,7 +102,7 @@ proc isKeyPressed*() : bool =
   
 template withShift*() : bool =
   scancodeMultikey == LEFT_SHIFT_Pressed or
-  scancodeMultikey == RIGHT_SHIFT_Pressed
+    scancodeMultikey == RIGHT_SHIFT_Pressed
 
 proc withLeftCtrl*() : bool =
   discard

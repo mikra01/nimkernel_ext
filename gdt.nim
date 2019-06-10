@@ -43,7 +43,7 @@ proc initGDTEntry*( entryId : int, baseAddr : uint32, limit : uint32,
       
 
 proc initialiseGDT*() =
-  gdtPtr.limit = sizeOf(GDTTable) - 1
+  gdtPtr.limit = (sizeOf(GDTTable)).uint16 - 1.uint16
   gdtPtr.base = cast[uint32](gdtTab.addr)
   initGDTEntry(0,0,0,0,0) # first entry must be zeroed
   initGDTEntry(1,0,0x00ffffff,0b10011010'u8,0b11001111'u8) # ring 0 codesegment base = 0

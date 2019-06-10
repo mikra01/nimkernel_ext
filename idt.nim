@@ -63,7 +63,7 @@ proc initIDTEntry*(isrNum : uint8, baseAddr : uint32, selector : uint16, gateFla
   idttab[isrNum].offsetHighbits = cast[uint16]( ( baseAddr shr 16 ) and 0xFFFF.uint16 )
   
 proc initialiseAndLoadIDT*() =
-  idtptr.limit =  sizeOf( IDTTable ) - 1
+  idtptr.limit =  (sizeOf( IDTTable )).uint16 - 1
   idtptr.base = cast[uint32](idttab.addr)  
   let noopBase = cast[uint32](cast[pointer](noOpHandler))
   
